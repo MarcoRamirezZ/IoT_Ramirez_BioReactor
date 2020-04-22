@@ -122,18 +122,25 @@ void loop()
   }
   String RFID = Display_UID();
   float weight = 0;
-  String container;
   uint8_t flagAccess = Access( RFID );
   if( flagAccess )
   {
     digitalWrite( LED_MODULE, LOW );//turn LED on indicating weight scanning
     flagAccess = FALSE;
-    container = get_Container_Info( RFID );
     weight = check_weight();
-    Send_to_Cloud( container, RFID, weight );
+    Send_to_Cloud( RFID, weight );
     delay(10000);
+    if (!client.connected()) 
+    {
+      reconnect();
+    }
+    delay(10000);
+    if (!client.connected()) 
+    {
+      reconnect();
+    }
     weight = check_weight();
-    Send_to_Cloud( container, RFID, weight );
+    Send_to_Cloud( RFID, weight );
     digitalWrite( LED_MODULE, HIGH );//turn LED off
   }
   /////////////////////////////////////////////////////////////////////////////
@@ -177,21 +184,6 @@ void loop()
 //////////////////////////////////////////////////////////////////////////////
 }
 
-String get_Container_Info ( String RFID )
-{
-  String container;
-  RFID.toUpperCase();
-  if( RFID.substring(1) == "24 31 64 2B" )
-  {
-   container = "taqueria";
-  }
-  else if( RFID.substring(1) == "37 71 B3 7A" )
-  {
-    container = "limon y chia";
-  }
-  return container;
-}
-
 float check_weight( void )
 {
   float weight = 0;
@@ -202,7 +194,7 @@ float check_weight( void )
 
 //debe de enviar la información en formato JSON:
 /*{"container": "nombre del contenedor", "value": "weight", "rfid": "rfid" }*/
-void Send_to_Cloud(String container,  String RFID, float weight )
+void Send_to_Cloud( String RFID, float weight )
 {
   Serial.println( "Sending data to Cloud..." );
   
@@ -211,9 +203,7 @@ void Send_to_Cloud(String container,  String RFID, float weight )
     String weight_s;
     weight_s = String(weight);
     char json_char[80] = {0};
-    String json_string = "{\"container\": \"";
-    json_string = json_string + container;
-    json_string = json_string + "\", \"value\": " ;
+    String json_string = "{\"container\": \"organico\", \"value\": \"";
     json_string = json_string + weight_s;
     json_string = json_string + "\", \"rfid\": \"";
     json_string = json_string + RFID;
